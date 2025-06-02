@@ -179,19 +179,23 @@ flt = df[mask].copy()
 #  - rank_order: sort by ENS_PRED descending
 #  - greedy_opt: sort by Prob_per_len descending
 rank_order = cumulative_select(flt.sort_values("ENS_PRED", ascending=False), "ENS_PRED", nt_limit)
-greedy_opt = cumulative_select(flt.sort_values("Prob_per_len", ascending=False), "Prob_per_len", nt_limit)
+greedy_opt   = cumulative_select(flt.sort_values("Prob_per_len", ascending=False), "Prob_per_len", nt_limit)
+
+# ---- OPTION A: DROP DUPLICATE ANNOTATIONS TO ALIGN VENN COUNTS WITH ROW COUNTS ----
+rank_order = rank_order.drop_duplicates(subset="Annotation")
+greedy_opt = greedy_opt.drop_duplicates(subset="Annotation")
 
 # Create sets of gene annotations for the Venn diagram
-set_rank = set(rank_order["Annotation"])
+set_rank   = set(rank_order["Annotation"])
 set_greedy = set(greedy_opt["Annotation"])
 
 # Compute rounded expected FOX genes for each complement
-exp_rank = round(rank_order["ENS_PRED"].sum())
+exp_rank   = round(rank_order["ENS_PRED"].sum())
 exp_greedy = round(greedy_opt["ENS_PRED"].sum())
 
 # To know if “Unknown” should appear at least once:
 #   collapse ALL Protein_names in flt → see if “Unknown” is in that set
-all_collapsed = flt["Protein_names"].dropna().apply(collapse_name)
+all_collapsed       = flt["Protein_names"].dropna().apply(collapse_name)
 overall_collapsed_set = set(all_collapsed.unique())
 
 ################################################################################
