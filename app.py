@@ -1,14 +1,13 @@
-"""Streamlit app for exploring predicted FOX genes in *Anabaena* 7120
+# Streamlit app for exploring predicted FOX genes in *Anabaena* 7120
 
 v4 – Terminology & polish
 -------------------------
-* **Prob‑based → Rank Order Selection**
+* **Prob-based → Rank Order Selection**
 * **Greedy → Greedy Optimization**
-* Word‑clouds use a fixed `random_state` for reproducibility.
+* Word-clouds use a fixed `random_state` for reproducibility.
 * Complement headings now state **gene count** and **total nt** explicitly.
 * `Protein_names` forced immediately after `Prob_per_len` in both display and downloads.
 * UI/logic otherwise unchanged.
-"""
 
 import io
 import re
@@ -30,7 +29,7 @@ def load_data(path: Path | str) -> pd.DataFrame:
         return pd.read_csv(p)
     return _read(str(path))
 
-# ------------------------ Word‑cloud helpers ---------------------------------
+# ------------------------ Word-cloud helpers ---------------------------------
 
 EXTRA_STOP = {
     "protein", "putative", "family", "domain", "predicted", "hypothetical",
@@ -39,14 +38,12 @@ EXTRA_STOP = {
 STOPWORDS_FULL = STOPWORDS.union(EXTRA_STOP)
 WC_SEED = 42  # reproducible
 
-
 def collapse_name(name: str) -> str:
     if pd.isna(name):
         return "Unknown"
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.IGNORECASE):
         return "Unknown"
     return name
-
 
 def make_wordcloud(series: pd.Series, title: str):
     txt = " ".join(series.dropna().apply(collapse_name))
@@ -80,7 +77,6 @@ def cumulative_select(df: pd.DataFrame, sort_col: str, limit_nt: int) -> pd.Data
         sel.append(row)
     return pd.DataFrame(sel)
 
-
 def enforce_col_order(tbl: pd.DataFrame) -> pd.DataFrame:
     """Ensure Protein_names follows Prob_per_len."""
     cols = list(tbl.columns)
@@ -88,7 +84,6 @@ def enforce_col_order(tbl: pd.DataFrame) -> pd.DataFrame:
         cols.insert(cols.index("Prob_per_len") + 1, cols.pop(cols.index("Protein_names")))
         tbl = tbl[cols]
     return tbl
-
 
 def download_csv(df: pd.DataFrame, label: str):
     buf = io.BytesIO()
@@ -99,8 +94,8 @@ def download_csv(df: pd.DataFrame, label: str):
 # Streamlit UI
 ################################################################################
 
-st.set_page_config(page_title="FOX‑Gene Complement Explorer", layout="wide")
-st.title("FOX‑Gene Complement Explorer")
+st.set_page_config(page_title="FOX-Gene Complement Explorer", layout="wide")
+st.title("FOX-Gene Complement Explorer")
 
 DATA_PATH = Path(__file__).with_name("FOX_unknown_with_hits_function_greedy.csv")
 if DATA_PATH.exists():
@@ -126,7 +121,7 @@ df["ND_cons"] = nd_hit.map({True: "Hit", False: "No hit"})
 with st.expander("🔍 Filter Options", expanded=True):
     st.header("Filters")
     fil_opts = st.multiselect("Filamentous conservation", ["Conserved", "Not conserved"], ["Conserved", "Not conserved"])
-    nd_opts = st.multiselect("Non‑diazotroph hit", ["Hit", "No hit"], ["Hit", "No hit"])
+    nd_opts = st.multiselect("Non-diazotroph hit", ["Hit", "No hit"], ["Hit", "No hit"])
     nt_limit = st.number_input("Complement length limit (nt)", 1000, int(df["Gene length"].sum()), 50000, 1000)
 
 # Filtered set
@@ -141,7 +136,18 @@ greedy_opt = cumulative_select(flt.sort_values("Prob_per_len", ascending=False),
 set_rank = set(rank_order["Annotation"])
 set_greedy = set(greedy_opt["Annotation"])
 
+# Compute rounded expected FOX genes
+exp_rank = round(rank_order["ENS_PRED"].sum())
+exp_greedy = round(greedy_opt["ENS_PRED"].sum())
+
+################################################################################
 # ----------------------------- Layout ---------------------------------------
+################################################################################
+
+# Display rounded expected FOX genes above Venn diagram
+st.markdown("### Rounded expected FOX genes")
+st.write(f"**Rank Order Selection**: {exp_rank}")
+st.write(f"**Greedy Optimization**: {exp_greedy}")
 
 # Venn diagram
 st.markdown("### Overlap between complements")
@@ -152,7 +158,7 @@ with center:
     st.pyplot(fig)
 
 # Word clouds
-st.markdown("### Word‑cloud comparison")
+st.markdown("### Word-cloud comparison")
 wc1, wc2 = st.columns(2)
 with wc1:
     st.caption("Rank Order Selection complement")
