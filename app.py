@@ -1,13 +1,6 @@
 # Streamlit app for exploring predicted FOX genes in *Anabaena* 7120
 
-v4 – Terminology & polish
--------------------------
-* **Prob-based → Rank Order Selection**
-* **Greedy → Greedy Optimization**
-* Word-clouds use a fixed `random_state` for reproducibility.
-* Complement headings now state **gene count** and **total nt** explicitly.
-* `Protein_names` forced immediately after `Prob_per_len` in both display and downloads.
-* UI/logic otherwise unchanged.
+
 
 import io
 import re
