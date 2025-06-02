@@ -32,14 +32,24 @@ WC_SEED = 42  # reproducible
 
 def collapse_name(name: str) -> str:
     """
-    Collapse any missing or locus‐tag–style names into "Unknown".
-    Otherwise return the name unchanged.
+    Collapse any missing / locus‐tag–style names into "Unknown".
+    Collapse all “ribosomal…” variants into "Ribosomal".
+    Otherwise, return the name unchanged.
     """
     if pd.isna(name):
         return "Unknown"
+
+    lower = name.lower()
+
     # If it looks like a locus tag (e.g. “all0001”, “alr0345”, etc.), collapse to “Unknown”
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.IGNORECASE):
         return "Unknown"
+
+    # If the word “ribosom” appears anywhere, collapse to a single “Ribosomal” label
+    if "ribosom" in lower:
+        return "Ribosomal"
+
+    # Otherwise, keep the name as‐is
     return name
 
 def make_wordcloud(
@@ -50,9 +60,9 @@ def make_wordcloud(
     """
     Build a word cloud from unique collapsed names in `series`.  
     If "Unknown" is in overall_collapsed_set (i.e. present anywhere in the filtered universe),
-    then force exactly one "Unknown" into this cloud—even if `series` had no "Unknown".
+    then force exactly one "Unknown" into this complement’s cloud—even if `series` had no "Unknown".
     """
-    # 1) Collapse each name (or NaN) → “Unknown” if needed
+    # 1) Collapse each name (or NaN) → “Unknown” or “Ribosomal” or original name
     collapsed = series.dropna().apply(collapse_name)
 
     # 2) Take the unique collapsed names from this complement
@@ -179,7 +189,7 @@ flt = df[mask].copy()
 #  - rank_order: sort by ENS_PRED descending
 #  - greedy_opt: sort by Prob_per_len descending
 rank_order = cumulative_select(flt.sort_values("ENS_PRED", ascending=False), "ENS_PRED", nt_limit)
-greedy_opt   = cumulative_select(flt.sort_values("Prob_per_len", ascending=False), "Prob_per_len", nt_limit)
+greedy_opt = cumulative_select(flt.sort_values("Prob_per_len", ascending=False), "Prob_per_len", nt_limit)
 
 # ---- OPTION A: DROP DUPLICATE ANNOTATIONS TO ALIGN VENN COUNTS WITH ROW COUNTS ----
 rank_order = rank_order.drop_duplicates(subset="Annotation")
@@ -195,7 +205,7 @@ exp_greedy = round(greedy_opt["ENS_PRED"].sum())
 
 # To know if “Unknown” should appear at least once:
 #   collapse ALL Protein_names in flt → see if “Unknown” is in that set
-all_collapsed       = flt["Protein_names"].dropna().apply(collapse_name)
+all_collapsed          = flt["Protein_names"].dropna().apply(collapse_name)
 overall_collapsed_set = set(all_collapsed.unique())
 
 ################################################################################
@@ -225,7 +235,8 @@ with venn_col:
 
 # 2) Word clouds side-by-side. Each will force exactly one "Unknown" if it was
 #    present anywhere in flt, but never more than once.
-st.markdown("### Word-cloud comparison (unique collapsed names, pulling in 'Unknown' once)")
+st.markdown("### Word-cloud comparison (unique collapsed names,\n"
+            "              grouping all “ribosomal…” into one “Ribosomal” label)")
 wc1, wc2 = st.columns(2)
 with wc1:
     st.caption("Rank Order Selection complement")
