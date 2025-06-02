@@ -123,7 +123,7 @@ nd_hit = df["non_diazotroph_hits"].notna() & (df["non_diazotroph_hits"] > 0)
 df["ND_cons"] = nd_hit.map({True: "Hit", False: "No hit"})
 
 # ----------------------------- Sidebar --------------------------------------
-with st.sidebar:
+with st.expander("🔍 Filter Options", expanded=True):
     st.header("Filters")
     fil_opts = st.multiselect("Filamentous conservation", ["Conserved", "Not conserved"], ["Conserved", "Not conserved"])
     nd_opts = st.multiselect("Non‑diazotroph hit", ["Hit", "No hit"], ["Hit", "No hit"])
