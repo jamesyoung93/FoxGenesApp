@@ -185,4 +185,4 @@ with right:
     download_csv(greedy_opt, "greedy_optimization")
 
 st.markdown("---")
-st.write("Filtered universe:", len(flt), "genes of", len(df))
+
