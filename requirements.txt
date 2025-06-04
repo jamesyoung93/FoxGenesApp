@@ -1,7 +1,4 @@
 streamlit>=1.33
-pathlib
-re
-io
 pandas
 matplotlib
 matplotlib-venn
