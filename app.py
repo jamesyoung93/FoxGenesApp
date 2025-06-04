@@ -118,12 +118,12 @@ df["ND_cons"] = nd_hit.map({True:"Hit", False:"No hit"})
 # ------------------------ Sidebar filters ----------------------------------
 with st.expander("🔍 Filter Options", expanded=True):
     st.header("Filters")
-    fil_opts = st.multiselect("Filamentous conservation",
+    fil_opts = st.multiselect("Filamentous conservation (>80% identity across all filamentous diazotrophs",
                               ["Conserved","Not conserved"],
                               default=["Conserved","Not conserved"])
-    nd_opts = st.multiselect("Non-diazotroph hit", ["Hit","No hit"],
+    nd_opts = st.multiselect("Non-diazotroph hit (any in this cohort >80%)", ["Hit","No hit"],
                              default=["Hit","No hit"])
-    croco_opts = st.multiselect("Crocosphaera 51142 hit",
+    croco_opts = st.multiselect("Crocosphaera 51142 hit (>80%)",
                                 ["Yes","No"], default=["Yes","No"])
     nt_limit = st.number_input("Complement length limit (nt)",
                                1000, int(df["Gene length"].sum()),
