@@ -74,6 +74,19 @@ def download_csv(df, label):
 st.set_page_config(page_title="FOX-Gene Complement Explorer", layout="wide")
 st.title("FOX-Gene Complement Explorer")
 
+# -------------------------------------------------------------------
+# quick-links banner
+st.markdown(
+    """
+✅ **Interested in more details?**  
+• Cohort-BLAST workflow → [cyanobacteria-diazotrophic-proteome repo](https://github.com/jamesyoung93/cyanobacteria-diazotrophic-proteome)  
+• Streamlit app source → [FoxGenesApp](https://github.com/jamesyoung93/FoxGenesApp/tree/main)  
+• ML feature-engineering / modelling → [FoxGenes_ML](https://github.com/jamesyoung93/FoxGenes_ML)
+""",
+    unsafe_allow_html=False,
+)
+# -------------------------------------------------------------------
+
 DATA_PATH = Path(__file__).with_name("FOX_unknown_with_hits_function_greedy_enriched.csv")
 if DATA_PATH.exists():
     df = load_data(DATA_PATH)
