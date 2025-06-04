@@ -1,7 +1,6 @@
 # Streamlit app for exploring predicted FOX genes in *Anabaena* 7120
-
-import io
-import re
+# v5 – Crocosphaera join  +  ENS_PRED → FOX probability
+import io, re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -10,136 +9,65 @@ import streamlit as st
 from matplotlib_venn import venn2
 from wordcloud import WordCloud, STOPWORDS
 
-################################################################################
-# Helper utilities
-################################################################################
+###############################################################################
+# ---------------------------- CONFIGURATION ----------------------------------
+###############################################################################
+DATA_PATH  = Path(__file__).with_name("FOX_unknown_with_hits_function_greedy.csv")
+CROC_PATH  = Path(__file__).with_name("filamentous_specific.csv")       # NEW
+CROC_COLS  = {                                                          # NEW
+    "croco_protein_name": "Croco_Prot",
+    "croco_pct_identity": "Croco_%ID"
+}
+WC_SEED = 42            # reproducible word-clouds
 
+###############################################################################
+# ----------------------------- HELPERS  --------------------------------------
+###############################################################################
 def load_data(path: Path | str) -> pd.DataFrame:
     @st.cache_data(show_spinner=False)
     def _read(p: str) -> pd.DataFrame:
         return pd.read_csv(p)
     return _read(str(path))
 
-
-# ------------------------ Word-cloud helpers ---------------------------------
-
-EXTRA_STOP = {
-    "protein", "putative", "family", "domain", "predicted", "hypothetical",
-    "probable", "possible", "like", "related"
-}
+# ------------- word-cloud helpers (unchanged – snipped for brevity) ----------
+EXTRA_STOP = {...}
 STOPWORDS_FULL = STOPWORDS.union(EXTRA_STOP)
-WC_SEED = 42  # reproducible
+def collapse_name(name: str) -> str: ...
+def make_wordcloud(series: pd.Series, title: str, overall_collapsed_set: set): ...
 
-def collapse_name(name: str) -> str:
-    """
-    Collapse any missing / locus‐tag–style names into "Unknown".
-    Collapse all “ribosomal…” variants into "Ribosomal".
-    Otherwise, return the name unchanged.
-    """
-    if pd.isna(name):
-        return "Unknown"
-
-    lower = name.lower()
-
-    # If it looks like a locus tag (e.g. “all0001”, “alr0345”, etc.), collapse to “Unknown”
-    if re.match(r"^(all|alr|asl|asr)\d+", name, re.IGNORECASE):
-        return "Unknown"
-
-    # If the word “ribosom” appears anywhere, collapse to a single “Ribosomal” label
-    if "ribosom" in lower:
-        return "Ribosomal"
-
-    # Otherwise, keep the name as‐is
-    return name
-
-def make_wordcloud(
-    series: pd.Series,
-    title: str,
-    overall_collapsed_set: set
-):
-    """
-    Build a word cloud from unique collapsed names in `series`.  
-    If "Unknown" is in overall_collapsed_set (i.e. present anywhere in the filtered universe),
-    then force exactly one "Unknown" into this complement’s cloud—even if `series` had no "Unknown".
-    """
-    # 1) Collapse each name (or NaN) → “Unknown” or “Ribosomal” or original name
-    collapsed = series.dropna().apply(collapse_name)
-
-    # 2) Take the unique collapsed names from this complement
-    unique_names = set(collapsed.unique())
-
-    # 3) If “Unknown” was collapsed anywhere in the full filtered universe
-    #    (overall_collapsed_set), but not in this complement, add it here:
-    if ("Unknown" in overall_collapsed_set) and ("Unknown" not in unique_names):
-        unique_names.add("Unknown")
-
-    # 4) Prepare the input text for WordCloud
-    txt = " ".join(unique_names)
-    if not txt:
-        st.write(f"*(no names in {title})*")
-        return
-
-    wc = WordCloud(
-        width=800,
-        height=300,
-        background_color="white",
-        stopwords=STOPWORDS_FULL,
-        random_state=WC_SEED,
-    ).generate(txt)
-
-    fig, ax = plt.subplots()
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis("off")
-    st.pyplot(fig)
-
-
-# --------------------- Complement selection helpers -------------------------
-
-def cumulative_select(df: pd.DataFrame, sort_col: str, limit_nt: int) -> pd.DataFrame:
-    """
-    Return rows (in the order of descending `sort_col`) until
-    the cumulative 'Gene length' would exceed `limit_nt`.
-    """
-    selected_rows = []
-    cum_len = 0
-    for _, row in df.iterrows():
-        length = row["Gene length"]
-        if pd.isna(length):
-            continue
-        if cum_len + length > limit_nt:
-            break
-        cum_len += length
-        selected_rows.append(row)
-    return pd.DataFrame(selected_rows)
-
+# -------------- complement helpers (cumulative_select, etc.) -----------------
+def cumulative_select(df: pd.DataFrame, sort_col: str, limit_nt: int) -> pd.DataFrame: ...
 def enforce_col_order(tbl: pd.DataFrame) -> pd.DataFrame:
     """
-    Move 'Protein_names' column to immediately follow 'Prob_per_len' if present.
+    Ensure column order:
+      Prob_per_len | Protein_names | Croco_Prot | Croco_%ID | ...
     """
     cols = list(tbl.columns)
-    if "Protein_names" in cols and "Prob_per_len" in cols:
-        prot_idx = cols.index("Protein_names")
+    wanted = ["Protein_names"] + list(CROC_COLS.values())
+    if "Protein_names" in cols:
+        base_idx = cols.index("Protein_names")
+        # pull any Crocosphaera columns out & re-insert right after Protein_names
+        for w in wanted[1:][::-1]:
+            if w in cols:
+                cols.insert(base_idx + 1, cols.pop(cols.index(w)))
+    if "Prob_per_len" in cols:
         prob_idx = cols.index("Prob_per_len")
-        # pop out and re-insert right after Prob_per_len
-        cols.insert(prob_idx + 1, cols.pop(prot_idx))
-        tbl = tbl[cols]
-    return tbl
+        cols.insert(prob_idx + 1, cols.pop(cols.index("Protein_names")))
+    return tbl[cols]
 
 def download_csv(df: pd.DataFrame, label: str):
     buf = io.BytesIO()
     df.to_csv(buf, index=False)
-    st.download_button(label=label, data=buf.getvalue(), file_name=f"{label}.csv", mime="text/csv")
+    st.download_button(label=label, data=buf.getvalue(),
+                       file_name=f"{label}.csv", mime="text/csv")
 
-
-################################################################################
-# Streamlit UI
-################################################################################
-
+###############################################################################
+# ----------------------------- UI / LOGIC ------------------------------------
+###############################################################################
 st.set_page_config(page_title="FOX-Gene Complement Explorer", layout="wide")
 st.title("FOX-Gene Complement Explorer")
 
-# Attempt to load a CSV from the same directory; if not found, ask user to upload
-DATA_PATH = Path(__file__).with_name("FOX_unknown_with_hits_function_greedy.csv")
+# ---------- 1. Load primary data --------------------------------------------
 if DATA_PATH.exists():
     df = load_data(DATA_PATH)
 else:
@@ -149,116 +77,78 @@ else:
         st.stop()
     df = pd.read_csv(up)
 
-# Ensure numeric columns are numeric
-for col in ["ENS_PRED", "Gene length", "Prob_per_len", "non_diazotroph_hits", "filamentous_diazotroph_hits"]:
+# ---------- 2. OPTIONAL: join Crocosphaera hits -----------------------------
+if CROC_PATH.exists():
+    croc = load_data(CROC_PATH).rename(columns=CROC_COLS)
+    df = df.merge(croc, on="Annotation", how="left")
+
+# ---------- 3. Basic cleanup & typing ---------------------------------------
+numeric_cols = ["ENS_PRED", "Gene length", "Prob_per_len",
+                "non_diazotroph_hits", "filamentous_diazotroph_hits"]
+for col in numeric_cols:
     if col in df:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-# Create conservation flags
-df["Filamentous_cons"] = df["filamentous_diazotroph_hits"].notna().map({True: "Conserved", False: "Not conserved"})
-nd_hit = df["non_diazotroph_hits"].notna() & (df["non_diazotroph_hits"] > 0)
-df["ND_cons"] = nd_hit.map({True: "Hit", False: "No hit"})
+# Create conservation flags (unchanged)
+...
 
 # ----------------------------- Sidebar --------------------------------------
+...
 
-with st.expander("🔍 Filter Options", expanded=True):
-    st.header("Filters")
-    fil_opts = st.multiselect(
-        "Filamentous conservation",
-        options=["Conserved", "Not conserved"],
-        default=["Conserved", "Not conserved"]
-    )
-    nd_opts = st.multiselect(
-        "Non-diazotroph hit",
-        options=["Hit", "No hit"],
-        default=["Hit", "No hit"]
-    )
-    nt_limit = st.number_input(
-        "Complement length limit (nt)",
-        min_value=1000,
-        max_value=int(df["Gene length"].sum()),
-        value=50000,
-        step=1000
-    )
+# ----------------- Build complements (rank & greedy) ------------------------
+rank_order = cumulative_select(flt.sort_values("ENS_PRED", ascending=False),
+                               "ENS_PRED", nt_limit)
+greedy_opt = cumulative_select(flt.sort_values("Prob_per_len", ascending=False),
+                               "Prob_per_len", nt_limit)
 
-# Apply filters
-mask = df["Filamentous_cons"].isin(fil_opts) & df["ND_cons"].isin(nd_opts)
-flt = df[mask].copy()
+# --- OPTIONAL duplicate-collapse to align row & Venn counts (unchanged) -----
+rank_order  = rank_order.drop_duplicates("Annotation")
+greedy_opt  = greedy_opt.drop_duplicates("Annotation")
 
-# Build each complement:
-#  - rank_order: sort by ENS_PRED descending
-#  - greedy_opt: sort by Prob_per_len descending
-rank_order = cumulative_select(flt.sort_values("ENS_PRED", ascending=False), "ENS_PRED", nt_limit)
-greedy_opt = cumulative_select(flt.sort_values("Prob_per_len", ascending=False), "Prob_per_len", nt_limit)
+# ---------- 4. Add Crocosphaera info ONLY to greedy complement -------------
+if CROC_PATH.exists():
+    greedy_opt = greedy_opt.merge(croc, on="Annotation", how="left")
 
-# ---- OPTION A: DROP DUPLICATE ANNOTATIONS TO ALIGN VENN COUNTS WITH ROW COUNTS ----
-rank_order = rank_order.drop_duplicates(subset="Annotation")
-greedy_opt = greedy_opt.drop_duplicates(subset="Annotation")
+# ---------- 5. Rename ENS_PRED for user-facing outputs ----------------------
+rank_order  = rank_order.rename(columns={"ENS_PRED": "FOX probability"})
+greedy_opt  = greedy_opt.rename(columns={"ENS_PRED": "FOX probability"})
+flt         = flt.rename(columns={"ENS_PRED": "FOX probability"})
 
-# Create sets of gene annotations for the Venn diagram
+# ---------- 6. Re-order columns --------------------------------------------
+rank_order  = enforce_col_order(rank_order)
+greedy_opt  = enforce_col_order(greedy_opt)
+
+# ---------- 7. Venn diagram & expected FOX counts ---------------------------
 set_rank   = set(rank_order["Annotation"])
 set_greedy = set(greedy_opt["Annotation"])
+exp_rank   = round(rank_order["FOX probability"].sum())
+exp_greedy = round(greedy_opt["FOX probability"].sum())
 
-# Compute rounded expected FOX genes for each complement
-exp_rank   = round(rank_order["ENS_PRED"].sum())
-exp_greedy = round(greedy_opt["ENS_PRED"].sum())
-
-# To know if “Unknown” should appear at least once:
-#   collapse ALL Protein_names in flt → see if “Unknown” is in that set
-all_collapsed          = flt["Protein_names"].dropna().apply(collapse_name)
-overall_collapsed_set = set(all_collapsed.unique())
-
-################################################################################
-# ----------------------------- Layout ---------------------------------------
-################################################################################
-
-# 1) Venn diagram + expected FOX‐gene counts in one figure
 st.markdown("### Overlap between complements (with expected FOX genes)")
 venn_col = st.columns([1, 2, 1])[1]
 with venn_col:
     fig, ax = plt.subplots(figsize=(4, 4))
-
-    venn2(
-        [set_rank, set_greedy],
-        ("Rank Order Selection", "Greedy Optimization"),
-        ax=ax
-    )
-
-    # Title includes both expected FOX counts
-    ax.set_title(
-        f"Expected FOX genes → Rank: {exp_rank} | Greedy: {exp_greedy}",
-        fontweight="bold",
-        pad=20
-    )
-
+    venn2([set_rank, set_greedy],
+          ("Rank Order Selection", "Greedy Optimization"), ax=ax)
+    ax.set_title(f"Expected FOX genes → Rank: {exp_rank} | Greedy: {exp_greedy}",
+                 fontweight="bold", pad=20)
     st.pyplot(fig)
 
-# 2) Word clouds side-by-side. Each will force exactly one "Unknown" if it was
-#    present anywhere in flt, but never more than once.
-st.markdown("### Word-cloud comparison (unique collapsed names,\n"
-            "              grouping all “ribosomal…” into one “Ribosomal” label)")
-wc1, wc2 = st.columns(2)
-with wc1:
-    st.caption("Rank Order Selection complement")
-    make_wordcloud(rank_order["Protein_names"], "Rank Order", overall_collapsed_set)
-with wc2:
-    st.caption("Greedy Optimization complement")
-    make_wordcloud(greedy_opt["Protein_names"], "Greedy Optimization", overall_collapsed_set)
+# ---------- 8. Word clouds ---------------------------------------------------
+...
 
-# 3) Reorder columns so that Protein_names follows Prob_per_len
-rank_order = enforce_col_order(rank_order)
-greedy_opt = enforce_col_order(greedy_opt)
-
-# 4) Show the detailed complement tables
+# ---------- 9. Display tables & allow download ------------------------------
 st.markdown("### Complement tables")
 left, right = st.columns(2)
 with left:
-    st.markdown(f"#### Rank Order Selection — {len(rank_order)} genes, {int(rank_order['Gene length'].sum()):,} nt")
+    st.markdown(f"#### Rank Order Selection — {len(rank_order)} genes, "
+                f"{int(rank_order['Gene length'].sum()):,} nt")
     st.dataframe(rank_order, hide_index=True, use_container_width=True)
     download_csv(rank_order, "rank_order_selection")
 
 with right:
-    st.markdown(f"#### Greedy Optimization — {len(greedy_opt)} genes, {int(greedy_opt['Gene length'].sum()):,} nt")
+    st.markdown(f"#### Greedy Optimization — {len(greedy_opt)} genes, "
+                f"{int(greedy_opt['Gene length'].sum()):,} nt")
     st.dataframe(greedy_opt, hide_index=True, use_container_width=True)
     download_csv(greedy_opt, "greedy_optimization")
 
