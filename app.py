@@ -124,7 +124,7 @@ with st.expander("🔍 Filter Options", expanded=True):
                               default=["Conserved","Not conserved"])
     nd_opts = st.multiselect("Non-diazotroph hit (any in this cohort >80%)", ["Hit","No hit"],
                              default=["Hit","No hit"])
-    croco_opts = st.multiselect("Crocosphaera 51142 hit (>80%)",
+    croco_opts = st.multiselect("Crocosphaera 51142 hit (>80%, Only Present When Also Conserved Across Filamentous Diazotrophs)",
                                 ["Yes","No"], default=["Yes","No"])
     nt_limit = st.number_input("Complement length limit (nt)",
                                1000, int(df["Gene length"].sum()),
