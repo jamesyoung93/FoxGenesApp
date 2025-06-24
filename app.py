@@ -106,7 +106,8 @@ for c in num_cols:
     if c in df: df[c] = pd.to_numeric(df[c], errors="coerce")
 
 # ---------- Croco-hit flag --------------------------------------------------
-df["Croco_hit"] = df["Croco_%ID"].ge(80)  # True/False
+#df["Croco_hit"] = df["Croco_%ID"].ge(80)  # True/False
+df["Croco_hit"] = df.get("Croco_%ID", pd.Series(False, index=df.index)).ge(80)
 df["Croco_hit"] = df["Croco_hit"].map({True:"Yes", False:"No"})
 
 # ---------- conservation flags ---------------------------------------------
