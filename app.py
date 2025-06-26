@@ -20,7 +20,7 @@ def load_data(path: Path | str) -> pd.DataFrame:
 
 # ---------- word-cloud helpers ---------------------------------------------
 EXTRA_STOP = {"protein","putative","family","domain","predicted","hypothetical",
-              "probable","possible","like","related", "EC"}
+              "probable","possible","like","related", "EC", "Ribosomal", "ribosomal"}
 STOPWORDS_FULL = STOPWORDS.union(EXTRA_STOP)
 WC_SEED = 42
 
