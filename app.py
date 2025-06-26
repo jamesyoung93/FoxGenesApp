@@ -29,6 +29,7 @@ def collapse_name(name: str) -> str:
     low = name.lower()
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Unknown"
     #if "ribosom" in low: return "Ribosomal"
+    if "CAB/ELIP/HLIP" in low: return "Stress-Protective"
     return name
 
 def make_wordcloud(series: pd.Series, title: str, overall: set):
