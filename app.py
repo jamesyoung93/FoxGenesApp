@@ -31,7 +31,7 @@ def collapse_name(name: str) -> str:
     if pd.isna(name): return "Unknown"
     low = name.lower()
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Uncharacterized"
-    #if "ribosom" in low: return "Ribosomal"
+    if "ribosom" in low: return "Ribosomal"
     if "hypothetical" in low: return "Uncharacterized"
     if "cab" in low: return "Protective"
     if "elip" in low: return "Protective"
