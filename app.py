@@ -33,9 +33,9 @@ def collapse_name(name: str) -> str:
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Uncharacterized"
     if "ribosom" in low: return "Ribosomal"
     if "hypothetical" in low: return "Uncharacterized"
-    if "cab" in low: return "CAB_ELIP_HLIP"
-    if "elip" in low: return "CAB_ELIP_HLIP"
-    if "hlip" in low: return "CAB_ELIP_HLIP"
+    if "cab" in low: return "Protective"
+    if "elip" in low: return "Protective"
+    if "hlip" in low: return "Protective"
     return name
 
 def make_wordcloud(series: pd.Series, title: str, overall: set):
