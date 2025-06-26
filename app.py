@@ -21,8 +21,8 @@ def load_data(path: Path | str) -> pd.DataFrame:
 # ---------- word-cloud helpers ---------------------------------------------
 EXTRA_STOP = {"protein","putative","family","domain","predicted",#"hypothetical", 
               "superfamily",
-              "probable","possible","like","related", "EC", #"Ribosomal", "ribosomal",
-              "RNA", #"binding",
+              "probable","possible","like","related", "EC", "Ribosomal", "ribosomal",
+              "RNA", "binding",
               "subunit"}
 STOPWORDS_FULL = STOPWORDS.union(EXTRA_STOP)
 WC_SEED = 42
@@ -30,12 +30,12 @@ WC_SEED = 42
 def collapse_name(name: str) -> str:
     if pd.isna(name): return "Unknown"
     low = name.lower()
-    if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Unknown"
+    if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Uncharacterized"
     #if "ribosom" in low: return "Ribosomal"
-    if "hypothetical" in low: return "Unknown"
-    if "cab" in low: return "Stress-Protective"
-    if "cab" in low: return "Stress-Protective"
-    if "cab" in low: return "Stress-Protective"
+    if "hypothetical" in low: return "Uncharacterized"
+    if "cab" in low: return "Protective"
+    if "elip" in low: return "Protective"
+    if "hlip" in low: return "Protective"
     return name
 
 def make_wordcloud(series: pd.Series, title: str, overall: set):
