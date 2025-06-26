@@ -19,8 +19,11 @@ def load_data(path: Path | str) -> pd.DataFrame:
     return _read(str(path))
 
 # ---------- word-cloud helpers ---------------------------------------------
-EXTRA_STOP = {"protein","putative","family","domain","predicted","hypothetical",
-              "probable","possible","like","related", "EC", "Ribosomal", "ribosomal", "RNA", "binding", "subunit"}
+EXTRA_STOP = {"protein","putative","family","domain","predicted",#"hypothetical", 
+              "superfamily",
+              "probable","possible","like","related", "EC", #"Ribosomal", "ribosomal",
+              "RNA", #"binding",
+              "subunit"}
 STOPWORDS_FULL = STOPWORDS.union(EXTRA_STOP)
 WC_SEED = 42
 
@@ -29,6 +32,7 @@ def collapse_name(name: str) -> str:
     low = name.lower()
     if re.match(r"^(all|alr|asl|asr)\d+", name, re.I): return "Unknown"
     #if "ribosom" in low: return "Ribosomal"
+    if "hypothetical" in low: return "Unknown"
     if "cab" in low: return "Stress-Protective"
     if "cab" in low: return "Stress-Protective"
     if "cab" in low: return "Stress-Protective"
