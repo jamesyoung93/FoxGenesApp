@@ -239,11 +239,11 @@ st.markdown("""
 
 # Title and header
 st.title("🧬 FOX-Gene Complement Explorer")
-st.caption(f"v{APP_VERSION} — Design minimal FOX-gene complements for synthetic nitrogen fixation")
+st.caption(f"v{APP_VERSION} — Design FOX-gene complements for synthetic nitrogen fixation")
 
 # Brief explanation
 st.markdown("""
-This tool supports the design of minimal gene complements for transferring oxic nitrogen fixation 
+This tool supports the design of FOX gene complements for transferring oxic nitrogen fixation 
 capability to non-diazotrophic hosts. It uses machine learning predictions trained on 
 *Anabaena* sp. PCC 7120 multi-omic data to rank candidate FOX (Fixation in the presence of OXygen) 
 genes and applies comparative bioinformatics filters based on conservation across diazotrophic 
