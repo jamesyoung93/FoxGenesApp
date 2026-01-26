@@ -650,7 +650,7 @@ if key_col and not rank_order.empty and not greedy_opt.empty:
             v.get_patch_by_id('11').set_alpha(0.6)
         
         ax.set_title(
-            f"Expected FOX genes (Σ pFOX)\nRank: {exp_rank} | Greedy: {exp_greedy}",
+            f"Sum of pFOX)\nRank: {exp_rank} | Greedy: {exp_greedy}",
             fontweight="bold",
             fontsize=12,
             pad=15
